@@ -13,6 +13,7 @@ namespace XOXServer
 
         public static void StartListening(string bindServer, int listenPort)
         {
+            OpcodesHandler.Init();
             IPHostEntry iphe = Dns.GetHostEntry(bindServer);
             IPEndPoint ipe = new IPEndPoint(iphe.AddressList[0], listenPort);
 

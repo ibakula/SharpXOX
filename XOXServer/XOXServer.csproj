@@ -63,6 +63,7 @@
     <Compile Include="Connection\Server.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Lobby\Lobby.cs" />
+    <Compile Include="Packet\Opcodes.cs" />
     <Compile Include="Packet\Packet.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

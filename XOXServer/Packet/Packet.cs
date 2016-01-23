@@ -78,7 +78,10 @@ namespace XOXServer
             for (; pos < deserialized.Length; ++pos)
             {
                 if (deserialized[pos] == '\0')
+                {
+                    str += deserialized[pos];
                     break;
+                }
 
                 str += deserialized[pos];
             }

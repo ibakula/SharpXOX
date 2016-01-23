@@ -1,1 +1,0 @@
-D:\TestApplication\XOXServer\XOXServer\bin\Debug\XOXServer.exe.config

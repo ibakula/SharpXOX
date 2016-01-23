@@ -18,6 +18,36 @@ namespace XOXServer
         private Queue<Packet> _packets;
         protected string _name;
 
+        public void HandleJoinOpcode(Packet packet)
+        {
+
+        }
+
+        public void HandleLobbyOpcode(Packet packet)
+        {
+
+        }
+
+        public void HandleNullOpcode(Packet packet)
+        {
+
+        }
+
+        public void HandleStartOpcode(Packet packet)
+        {
+
+        }
+
+        public void HandleTurnOpcode(Packet packet)
+        {
+
+        }
+
+        public void HandleReceive(IAsyncResult result)
+        {
+
+        }
+
         public static void Open(IAsyncResult result)
         {
             Server.Mre.Set();
@@ -27,11 +57,6 @@ namespace XOXServer
             Server.SLobby.AddPlayer(connection);
             Packet packet = new Packet();
             handler.BeginReceive(packet.GetData, 0, 3, SocketFlags.None, new AsyncCallback(connection.HandleReceive), packet);
-        }
-
-        public void HandleReceive(IAsyncResult result)
-        {
-            
         }
     }
 }
