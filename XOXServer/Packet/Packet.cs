@@ -8,10 +8,10 @@ namespace XOXServer
 {
     struct Packet
     {
-        public Packet(byte opcode = 0)
+        public Packet(int opcode = 0)
         {
             _buffer = new byte[3];
-            _buffer[0] = opcode;
+            _buffer[0] = Convert.ToByte(opcode);
             _readPos = 1;
         }
 
