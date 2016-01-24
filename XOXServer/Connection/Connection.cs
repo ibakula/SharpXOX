@@ -45,7 +45,19 @@ namespace XOXServer
 
         public void HandleReceive(IAsyncResult result)
         {
+            Packet packet = (Packet)result.AsyncState;
+            _client.BeginReceive(packet.GetData, 3, packet.GetPacketSize(), SocketFlags.None, new AsyncCallback(HandleReceiveMore), packet);
+        }
 
+        public void HandleReceiveMore(IAsyncResult result)
+        {
+            Packet packet = (Packet)result.AsyncState;
+
+            if (OpcodesHandler.handlerTable[packet.GetOpcode()].handler != null)
+                OpcodesHandler.handlerTable[packet.GetOpcode()].handler(this, packet);
+
+            packet = new Packet();
+            _client.BeginReceive(packet.GetData, 0, 3, SocketFlags.None, new AsyncCallback(HandleReceive), packet);
         }
 
         public static void Open(IAsyncResult result)
