@@ -31,6 +31,7 @@ namespace XOXServer
         {
             string Name = packet.Read();
             Lobby.AddPlayer(this);
+            HandleLobbyOpcode(packet);
         }
 
         public void HandleLobbyOpcode(Packet packet)
@@ -68,8 +69,8 @@ namespace XOXServer
             opponent._match = _match;
             Lobby.RemovePlayer(this);
             Lobby.RemovePlayer(opponent);
-            packet = new Packet(Convert.ToInt32(Opcodes.TURN)); // Take turn
-            packet.Write(_match.GetTableData);
+            packetToSend = new Packet(Convert.ToInt32(Opcodes.TURN)); // Take turn
+            packetToSend.Write(_match.GetTableData);
             SendWrapper(packet);
             packetToSend = new Packet(Convert.ToInt32(Opcodes.START)); // Signal wait
             opponent.SendWrapper(packetToSend);
@@ -77,7 +78,22 @@ namespace XOXServer
 
         public void HandleTurnOpcode(Packet packet)
         {
-            
+            if (_match == null)
+                return;
+
+            byte field = 0;
+            packet.Read(ref field, 1);
+            _match.DoMovement(field, this);
+            if (_match.FindWinner() == this)
+                HandleJoinOpcode(packet);
+            else
+            {
+                Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.START)); // Signal wait.
+                SendWrapper(packetToSend);
+                packetToSend = new Packet(Convert.ToInt32(Opcodes.TURN)); // Take turn.
+                packetToSend.Write(_match.GetTableData);
+                _match.GetOponnent(this).SendWrapper(packetToSend);
+            }
         }
 
         public void HandleReceive(IAsyncResult result)

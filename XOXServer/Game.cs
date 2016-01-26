@@ -56,5 +56,15 @@ namespace XOXServer
             }
             return Winner;
         }
+
+        public Connection GetPlayer(int index)
+        {
+            return _players[index];
+        }
+
+        public Connection GetOponnent(Connection plr)
+        {
+            return (GetPlayer(0) == plr ? GetPlayer(0) : GetPlayer(1));
+        }
     }
 }
