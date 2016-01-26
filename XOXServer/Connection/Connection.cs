@@ -84,11 +84,15 @@ namespace XOXServer
             byte field = 0;
             packet.Read(ref field, 1);
             _match.DoMovement(field, this);
+            Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.JOIN));
+            packetToSend.Write(_name);
+            packetToSend.Finalize();
+            packetToSend.GetPacketSize(); // Just to move read position
             if (_match.FindWinner() == this)
                 HandleJoinOpcode(packet);
             else
             {
-                Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.START)); // Signal wait.
+                packetToSend = new Packet(Convert.ToInt32(Opcodes.START)); // Signal wait.
                 SendWrapper(packetToSend);
                 packetToSend = new Packet(Convert.ToInt32(Opcodes.TURN)); // Take turn.
                 packetToSend.Write(_match.GetTableData);
