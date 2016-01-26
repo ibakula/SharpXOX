@@ -41,7 +41,6 @@ namespace XOXServer
 
             Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.LOBBY));
             packetToSend.Write<string>(Names);
-            packetToSend.Finalize();
             SendWrapper(packetToSend);
         }
 
@@ -61,7 +60,6 @@ namespace XOXServer
             if (opponent == null) // Misspelled?
             {
                 packetToSend = new Packet(Convert.ToInt32(Opcodes.NULL));
-                packetToSend.Finalize();
                 SendWrapper(packetToSend);
                 return;
             }
@@ -72,10 +70,8 @@ namespace XOXServer
             Lobby.RemovePlayer(opponent);
             packet = new Packet(Convert.ToInt32(Opcodes.TURN)); // Take turn
             packet.Write(_match.GetTableData);
-            packet.Finalize();
             SendWrapper(packet);
             packetToSend = new Packet(Convert.ToInt32(Opcodes.START)); // Signal wait
-            packetToSend.Finalize();
             opponent.SendWrapper(packetToSend);
         }
 
@@ -112,12 +108,26 @@ namespace XOXServer
             handler.BeginReceive(packet.GetData, 0, 3, SocketFlags.None, new AsyncCallback(connection.HandleReceive), packet);
         }
 
-        private void SendWrapper(Packet packet)
+        private void SendNext()
         {
             SocketError err;
-            _client.Send(packet.GetData, 0, packet.GetPacketSize(), SocketFlags.None, out err);
+            _client.Send(_packets.Peek().GetData, 0, _packets.Peek().GetPacketSize(), SocketFlags.None, out err);
+
             if (err != SocketError.Success)
                 Console.WriteLine("Client \"{0}\" Send Code Error: SocketError Num {1}", _name, err.ToString());
+            
+            _packets.Dequeue();
+
+            if (_packets.Count != 0)
+                SendNext();
+        }
+
+        private void SendWrapper(Packet packet)
+        {
+            packet.Finalize();
+            _packets.Enqueue(packet);
+            if (_packets.Count == 1)
+                SendNext();
         }
     }
 }
