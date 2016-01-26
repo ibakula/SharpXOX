@@ -9,7 +9,6 @@ namespace XOXServer
     public class Server
     {
         public static ManualResetEvent Mre = new ManualResetEvent(false);
-        public static Lobby SLobby = new Lobby();
 
         public static void StartListening(string bindServer, int listenPort)
         {

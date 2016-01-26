@@ -6,38 +6,36 @@ namespace XOXServer
 {
     public class Lobby
     {
-        private List<Connection> players;
+        private static List<Connection> _players;
 
-        public string this[int index]
+        public static int GetPlayersCount
         {
             get
             {
-                return players[index].GetName;
+                return _players.Count;
             }
         }
 
-        public int GetPlayersCount
+        public static void AddPlayer(Connection conn)
         {
-            get
-            {
-                return players.Count;
-            }
-        }
-        
-        public void AddPlayer(Connection conn)
-        {
-            if (!players.Contains(conn))
-            {
-                players.Add(conn);
-            }
+            if (!_players.Contains(conn))
+                _players.Add(conn);
         }
 
-        public void RemovePlayer(Connection conn)
+        public static Connection FindPlayer(string plrName)
         {
-            if(players.Contains(conn))
-            {
-                players.Remove(conn);
-            }
+            return null;
+        }
+
+        public static string GetPlayerByName(int index)
+        {
+            return _players[index].GetName;
+        }
+
+        public static void RemovePlayer(Connection conn)
+        {
+            if (_players.Contains(conn))
+                _players.Remove(conn);
         }
     }
 }
