@@ -6,7 +6,7 @@ using System.Text;
 
 namespace XOXServer
 {
-    struct Packet
+    public struct Packet
     {
         public Packet(int opcode = 0)
         {
@@ -30,7 +30,7 @@ namespace XOXServer
             }
         }
 
-        public void Finalize()
+        public void Settle()
         {
             BinaryFormatter bf = new BinaryFormatter();
             using (MemoryStream ms = new MemoryStream())

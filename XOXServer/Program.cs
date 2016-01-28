@@ -12,7 +12,7 @@ namespace XOXServer
                 Console.ReadKey();
                 return;
             }
-            Server.StartListening(args[0], Int32.Parse(args[2]));
+            Server.StartListening(args[0], Int32.Parse(args[1]));
         }
     }
 }

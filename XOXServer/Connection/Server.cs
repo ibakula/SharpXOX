@@ -12,17 +12,14 @@ namespace XOXServer
 
         public static void StartListening(string bindServer, int listenPort)
         {
-            OpcodesHandler.Init();
-            IPHostEntry iphe = Dns.GetHostEntry(bindServer);
-            IPEndPoint ipe = new IPEndPoint(iphe.AddressList[0], listenPort);
-
+            IPEndPoint ipe = new IPEndPoint(Dns.GetHostAddresses(bindServer)[0], listenPort);
             Socket listener = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             try
             {
                 listener.Bind(ipe);
                 listener.Listen(listenPort);
-                Console.WriteLine("Accepting connections on {0}:{1}", ipe.ToString(), listenPort);
+                Console.WriteLine("Accepting connections on {0}:{1}", ipe.Address.ToString(), listenPort);
                 while (true)
                 {
                     Mre.Reset();

@@ -15,7 +15,7 @@ namespace XOXServer
         }
 
         private Socket _client;
-        private Queue<Packet> _packets;
+        private Queue<Packet> _packets = new Queue<Packet>();
         private string _name;
         private Game _match;
 
@@ -29,19 +29,31 @@ namespace XOXServer
 
         public void HandleJoinOpcode(Packet packet)
         {
-            string Name = packet.Read();
+            string name = packet.Read();
+            if (Lobby.FindPlayer(name) != null)
+            {
+                Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.JOIN));
+                string names = String.Empty;
+                for (int i = 0; i < Lobby.GetPlayersCount; ++i)
+                    names += "\n" + Lobby.GetPlayerByName(i);
+
+                packetToSend.Write(names);
+                SendWrapper(packetToSend);
+                return;
+            }
             Lobby.AddPlayer(this);
+            _name = name;
             HandleLobbyOpcode(packet);
         }
 
         public void HandleLobbyOpcode(Packet packet)
         {
-            string Names = String.Empty;
+            string names = String.Empty;
             for (int i = 0; i < Lobby.GetPlayersCount; ++i)
-                Names += Lobby.GetPlayerByName(i);
+                names += "\n" + Lobby.GetPlayerByName(i);
 
             Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.LOBBY));
-            packetToSend.Write<string>(Names);
+            packetToSend.Write(names);
             SendWrapper(packetToSend);
         }
 
@@ -86,7 +98,7 @@ namespace XOXServer
             _match.DoMovement(field, this);
             Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.JOIN));
             packetToSend.Write(_name);
-            packetToSend.Finalize();
+            packetToSend.Settle();
             packetToSend.GetPacketSize(); // Just to move read position
             if (_match.FindWinner() == this)
                 HandleJoinOpcode(packet);
@@ -110,8 +122,8 @@ namespace XOXServer
         {
             Packet packet = (Packet)result.AsyncState;
 
-            if (OpcodesHandler.handlerTable[packet.GetOpcode()].handler != null)
-                OpcodesHandler.handlerTable[packet.GetOpcode()].handler(this, packet);
+            if (OpcodesHandler.handlerTable.Length < packet.GetOpcode() && OpcodesHandler.handlerTable[packet.GetOpcode()].Handler != null)
+                OpcodesHandler.handlerTable[packet.GetOpcode()].Handler(this, packet);
 
             packet = new Packet();
             _client.BeginReceive(packet.GetData, 0, 3, SocketFlags.None, new AsyncCallback(HandleReceive), packet);
@@ -144,7 +156,7 @@ namespace XOXServer
 
         private void SendWrapper(Packet packet)
         {
-            packet.Finalize();
+            packet.Settle();
             _packets.Enqueue(packet);
             if (_packets.Count == 1)
                 SendNext();

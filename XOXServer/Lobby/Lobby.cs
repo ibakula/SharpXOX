@@ -6,7 +6,7 @@ namespace XOXServer
 {
     public class Lobby
     {
-        private static List<Connection> _players;
+        private static List<Connection> _players = new List<Connection>();
 
         public static int GetPlayersCount
         {
@@ -24,6 +24,10 @@ namespace XOXServer
 
         public static Connection FindPlayer(string plrName)
         {
+            for (int i = 0; i < _players.Count; ++i)
+                if (String.Compare(_players[i].GetName, plrName) == 0)
+                    return _players[i];
+
             return null;
         }
 
