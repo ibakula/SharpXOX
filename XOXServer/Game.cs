@@ -31,7 +31,7 @@ namespace XOXServer
 
         public void DoMovement(byte field, Connection plr)
         {
-            int whoAmI = (plr == _players[0] ? 0 : (plr == _players[1] ? 1 : -1));
+            int whoAmI = GetMyIndex(plr);
             if (whoAmI < 0 || field > 9 || field < 1 || _fields[field - 1] != 0)
                 return;
 
@@ -40,8 +40,6 @@ namespace XOXServer
 
         public Connection FindWinner()
         {
-            Connection Winner = null;
-
             for (int i = 1; i < 3; ++i)
             {
                 if ((_fields[0] == i && _fields[1] == i && _fields[2] == i) ||
@@ -50,11 +48,15 @@ namespace XOXServer
                     (_fields[0] == i && _fields[4] == i && _fields[8] == i) ||
                     (_fields[2] == i && _fields[4] == i && _fields[6] == i))
                 {
-                    Winner = _players[i - 1];
-                    break;
+                    return _players[i - 1];
                 }
             }
-            return Winner;
+            return null;
+        }
+
+        public int GetMyIndex(Connection plr)
+        {
+            return (plr == _players[0] ? 0 : 1);
         }
 
         public Connection GetPlayer(int index)

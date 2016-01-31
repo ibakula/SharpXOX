@@ -27,12 +27,14 @@ namespace XOXServer
             }
         }
 
+        // ToDo: We should update everyone with the new lobby list on each new join.
         public void HandleJoinOpcode(Packet packet)
         {
-            string name = packet.Read();
+            string name = String.Empty;
+            packet.Read(ref name);
             if (Lobby.FindPlayer(name) != null)
             {
-                Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.JOIN));
+                Packet packetToSend = new Packet(Opcodes.JOIN, false);
                 string names = String.Empty;
                 for (int i = 0; i < Lobby.GetPlayersCount; ++i)
                     names += "\n" + Lobby.GetPlayerByName(i);
@@ -52,7 +54,15 @@ namespace XOXServer
             for (int i = 0; i < Lobby.GetPlayersCount; ++i)
                 names += "\n" + Lobby.GetPlayerByName(i);
 
-            Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.LOBBY));
+            Packet packetToSend = new Packet(Opcodes.LOBBY, false);
+            if (_match != null)
+            {
+                int index = _match.GetMyIndex(_match.GetOponnent(this));
+                packetToSend.Write(index);
+                byte field = 0;
+                packet.Read(ref field);
+                packetToSend.Write(field);
+            }
             packetToSend.Write(names);
             SendWrapper(packetToSend);
         }
@@ -67,13 +77,12 @@ namespace XOXServer
             if (_match != null) // In a match already?
                 return;
 
-            string opponentName = packet.Read();
+            string opponentName = String.Empty;
+            packet.Read(ref opponentName);
             Connection opponent = Lobby.FindPlayer(opponentName);
-            Packet packetToSend;
-            if (opponent == null) // Misspelled?
+            if (opponent == null || opponent == this) // Misspelled?
             {
-                packetToSend = new Packet(Convert.ToInt32(Opcodes.NULL));
-                SendWrapper(packetToSend);
+                HandleLobbyOpcode(packet);
                 return;
             }
 
@@ -81,10 +90,10 @@ namespace XOXServer
             opponent._match = _match;
             Lobby.RemovePlayer(this);
             Lobby.RemovePlayer(opponent);
-            packetToSend = new Packet(Convert.ToInt32(Opcodes.TURN)); // Take turn
+            Packet packetToSend = new Packet(Opcodes.TURN, false); // Take turn
             packetToSend.Write(_match.GetTableData);
             SendWrapper(packet);
-            packetToSend = new Packet(Convert.ToInt32(Opcodes.START)); // Signal wait
+            packetToSend = new Packet(Opcodes.START, false); // Signal wait
             opponent.SendWrapper(packetToSend);
         }
 
@@ -94,20 +103,28 @@ namespace XOXServer
                 return;
 
             byte field = 0;
-            packet.Read(ref field, 1);
+            packet.Read(ref field);
             _match.DoMovement(field, this);
-            Packet packetToSend = new Packet(Convert.ToInt32(Opcodes.JOIN));
-            packetToSend.Write(_name);
-            packetToSend.Settle();
-            packetToSend.GetPacketSize(); // Just to move read position
             if (_match.FindWinner() == this)
+            {
+                Packet packetToSend = new Packet(Opcodes.JOIN, false);
+                packetToSend.Write(_name);
+                packetToSend.Write(field);
+                packetToSend.Settle();
+                // Just moving read position
+                packetToSend.GetPacketSize();
+                packetToSend.GetOpcode();
                 HandleJoinOpcode(packet);
+                _match.GetOponnent(this)._match = null;
+                _match = null;
+            }
             else
             {
-                packetToSend = new Packet(Convert.ToInt32(Opcodes.START)); // Signal wait.
+                Packet packetToSend = new Packet(Opcodes.START, false); // Signal wait.
                 SendWrapper(packetToSend);
-                packetToSend = new Packet(Convert.ToInt32(Opcodes.TURN)); // Take turn.
-                packetToSend.Write(_match.GetTableData);
+                packetToSend = new Packet(Opcodes.TURN, false); // Take turn.
+                packetToSend.Write((_match.GetMyIndex(this)+1));
+                packetToSend.Write(field);
                 _match.GetOponnent(this).SendWrapper(packetToSend);
             }
         }
@@ -115,35 +132,39 @@ namespace XOXServer
         public void HandleReceive(IAsyncResult result)
         {
             Packet packet = (Packet)result.AsyncState;
-            _client.BeginReceive(packet.GetData, 3, packet.GetPacketSize(), SocketFlags.None, new AsyncCallback(HandleReceiveMore), packet);
+            int packetSize = packet.GetPacketSize();
+            packet.Prepare(packetSize);
+            _client.BeginReceive(packet.GetData, 53, packetSize, SocketFlags.None, new AsyncCallback(HandleReceiveMore), packet);
         }
 
         public void HandleReceiveMore(IAsyncResult result)
         {
             Packet packet = (Packet)result.AsyncState;
+            byte opcode = packet.GetOpcode();
 
-            if (OpcodesHandler.handlerTable.Length < packet.GetOpcode() && OpcodesHandler.handlerTable[packet.GetOpcode()].Handler != null)
-                OpcodesHandler.handlerTable[packet.GetOpcode()].Handler(this, packet);
+            if (OpcodesHandler.handlerTable[opcode].Handler != null)
+                OpcodesHandler.handlerTable[opcode].Handler(this, packet);
 
             packet = new Packet();
-            _client.BeginReceive(packet.GetData, 0, 3, SocketFlags.None, new AsyncCallback(HandleReceive), packet);
+            _client.BeginReceive(packet.GetData, 0, 53, SocketFlags.None, new AsyncCallback(HandleReceive), packet);
         }
 
         public static void Open(IAsyncResult result)
         {
             Server.Mre.Set();
-            Socket listener = (Socket)result;
+            Socket listener = (Socket)result.AsyncState;
             Socket handler = listener.EndAccept(result);
             Connection connection = new Connection(handler);
+            connection._client = handler;
             Lobby.AddPlayer(connection);
             Packet packet = new Packet();
-            handler.BeginReceive(packet.GetData, 0, 3, SocketFlags.None, new AsyncCallback(connection.HandleReceive), packet);
+            handler.BeginReceive(packet.GetData, 0, 53, SocketFlags.None, new AsyncCallback(connection.HandleReceive), packet);
         }
 
         private void SendNext()
         {
             SocketError err;
-            _client.Send(_packets.Peek().GetData, 0, _packets.Peek().GetPacketSize(), SocketFlags.None, out err);
+            _client.Send(_packets.Peek().GetData, 0, _packets.Peek().GetPacketSize()+53, SocketFlags.None, out err);
 
             if (err != SocketError.Success)
                 Console.WriteLine("Client \"{0}\" Send Code Error: SocketError Num {1}", _name, err.ToString());

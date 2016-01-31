@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
-namespace XOXServer
+namespace XOXClient
 {
     public class Packet
     {
@@ -63,7 +63,7 @@ namespace XOXServer
             BinaryFormatter bf = new BinaryFormatter();
             using (MemoryStream ms = new MemoryStream())
             {
-                ms.Write(_buffer, _readPos, _buffer.Length-_readPos);
+                ms.Write(_buffer, _readPos, _buffer.Length - _readPos);
                 ms.Position = 0;
                 data = (T)bf.Deserialize(ms);
                 _readPos += Convert.ToInt32(ms.Position);

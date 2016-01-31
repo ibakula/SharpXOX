@@ -7,7 +7,7 @@ namespace XOXClient
     {
         public static string GetNameInput()
         {
-            Console.WriteLine("Enter desired display name:");
+            Console.WriteLine("Enter name:");
             string name = Console.ReadLine();
             return name;
         }
