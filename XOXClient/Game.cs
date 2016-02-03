@@ -14,15 +14,13 @@ namespace XOXClient
         {
             Console.WriteLine("Enter a field id (1-9):");
             int field = 1;
+            bool invalidInput = true;
             do
             {
-                field = Console.Read();
-                field -= 48;
-
-                if (field < 10 && field > 0 && _fields[field - 1] == 0)
-                    break;
-
-            } while (field > 9 || field < 1 || _fields[field - 1] != 0);
+                field = Convert.ToInt32(Console.ReadLine());
+                invalidInput = !(field < 10 && field > 0 && _fields[field - 1] == 0);
+                Console.WriteLine("Wrong input, try again (1-9):");
+            } while (invalidInput);
 
             return Convert.ToByte(field);
         }
