@@ -91,8 +91,8 @@ namespace XOXServer
             Lobby.RemovePlayer(this);
             Lobby.RemovePlayer(opponent);
             Packet packetToSend = new Packet(Opcodes.TURN, false); // Take turn
-            packetToSend.Write(_match.GetTableData);
-            SendWrapper(packet);
+            packetToSend.Write((_match.GetMyIndex(opponent)+1));
+            SendWrapper(packetToSend);
             packetToSend = new Packet(Opcodes.START, false); // Signal wait
             opponent.SendWrapper(packetToSend);
         }
@@ -109,14 +109,22 @@ namespace XOXServer
             {
                 Packet packetToSend = new Packet(Opcodes.JOIN, false);
                 packetToSend.Write(_name);
+                packetToSend.Settle();
+                // Just moving read position
+                packetToSend.GetPacketSize();
+                packetToSend.GetOpcode();
+                Connection opponent = _match.GetOponnent(this);
+                _match = null; // this is a winner, he doesn't require any updated field views.
+                HandleJoinOpcode(packetToSend);
+                packetToSend = new Packet(Opcodes.JOIN, false);
+                packetToSend.Write(opponent.GetName);
                 packetToSend.Write(field);
                 packetToSend.Settle();
                 // Just moving read position
                 packetToSend.GetPacketSize();
                 packetToSend.GetOpcode();
-                HandleJoinOpcode(packet);
-                _match.GetOponnent(this)._match = null;
-                _match = null;
+                opponent.HandleJoinOpcode(packetToSend);
+                opponent._match = null; // opponent lost, show him the final move.
             }
             else
             {

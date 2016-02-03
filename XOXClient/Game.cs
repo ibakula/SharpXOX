@@ -13,14 +13,16 @@ namespace XOXClient
         public static byte DoMovement(int index)
         {
             Console.WriteLine("Enter a field id (1-9):");
-            int field = Console.Read();
-            while (field > 9 || field < 1 || _fields[field - 1] != 0)
+            int field = 1;
+            do
             {
-                Console.WriteLine("Wrong input, try again (1-9):");
                 field = Console.Read();
-            }
+                field -= 48;
 
-            _fields[field - 1] = Convert.ToByte(index);
+                if (field < 10 && field > 0 && _fields[field - 1] == 0)
+                    break;
+
+            } while (field > 9 || field < 1 || _fields[field - 1] != 0);
 
             return Convert.ToByte(field);
         }
@@ -30,9 +32,10 @@ namespace XOXClient
             string str = String.Empty;
             for (int i = 0; i < 9; ++i)
             {
-                str += (_fields[i] == 1 ? "X" : "O");
+                str += (_fields[i] == 1 ? "X" : (_fields[i] == 2 ? "O" : Convert.ToString(i+1)));
                 if (i != 2 && i != 5 && i != 8)
                     str += "|";
+                else str += "\n" + (i != 8 ? "------\n" : String.Empty);
             }
             return str;
         }
@@ -45,7 +48,10 @@ namespace XOXClient
                     (_fields[3] == i && _fields[4] == i && _fields[5] == i) ||
                     (_fields[6] == i && _fields[7] == i && _fields[8] == i) ||
                     (_fields[0] == i && _fields[4] == i && _fields[8] == i) ||
-                    (_fields[2] == i && _fields[4] == i && _fields[6] == i))
+                    (_fields[2] == i && _fields[4] == i && _fields[6] == i) ||
+                    (_fields[0] == i && _fields[3] == i && _fields[6] == i) ||
+                    (_fields[1] == i && _fields[4] == i && _fields[7] == i) ||
+                    (_fields[2] == i && _fields[5] == i && _fields[8] == i))
                 {
                     return i;
                 }
@@ -64,7 +70,7 @@ namespace XOXClient
 
         public static int GetMyIndex(int opponentIndex)
         {
-            return (opponentIndex == 1 ? 1 : 2);
+            return (opponentIndex == 1 ? 2 : 1);
         }
 
         public static void Reset()

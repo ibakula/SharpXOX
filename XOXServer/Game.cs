@@ -35,7 +35,7 @@ namespace XOXServer
             if (whoAmI < 0 || field > 9 || field < 1 || _fields[field - 1] != 0)
                 return;
 
-            _fields[field - 1] = Convert.ToByte(whoAmI);
+            _fields[field - 1] = Convert.ToByte(whoAmI+1);
         }
 
         public Connection FindWinner()
@@ -46,7 +46,10 @@ namespace XOXServer
                     (_fields[3] == i && _fields[4] == i && _fields[5] == i) ||
                     (_fields[6] == i && _fields[7] == i && _fields[8] == i) ||
                     (_fields[0] == i && _fields[4] == i && _fields[8] == i) ||
-                    (_fields[2] == i && _fields[4] == i && _fields[6] == i))
+                    (_fields[2] == i && _fields[4] == i && _fields[6] == i) ||
+                    (_fields[0] == i && _fields[3] == i && _fields[6] == i) ||
+                    (_fields[1] == i && _fields[4] == i && _fields[7] == i) ||
+                    (_fields[2] == i && _fields[5] == i && _fields[8] == i))
                 {
                     return _players[i - 1];
                 }
@@ -66,7 +69,7 @@ namespace XOXServer
 
         public Connection GetOponnent(Connection plr)
         {
-            return (GetPlayer(0) == plr ? GetPlayer(0) : GetPlayer(1));
+            return (GetPlayer(0) == plr ? GetPlayer(1) : GetPlayer(0));
         }
     }
 }

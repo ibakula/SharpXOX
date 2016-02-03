@@ -83,15 +83,20 @@ namespace XOXClient
         public static void HandleTurnOpcode(Packet packet)
         {
             int opponentIndex = 0;
-            byte opponentField = 0;
             packet.Read(ref opponentIndex);
-            packet.Read(ref opponentField);
+            if (!packet.ReadEnded())
+            {
+                byte opponentField = 0;
+                packet.Read(ref opponentField);
+                Game.UpdateFields(opponentField, opponentIndex);
+            }
             int plrIndex = Game.GetMyIndex(opponentIndex);
-            Game.UpdateFields(opponentField, opponentIndex);
             Console.WriteLine(Game.DrawTable());
             Packet packetToSend = new Packet(Opcodes.TURN, false);
             byte field = Game.DoMovement(plrIndex);
+            Game.UpdateFields(field, plrIndex);
             packetToSend.Write(field);
+            Console.WriteLine("\n" + Game.DrawTable());
 
             if (Game.FindWinner() == plrIndex)
             {

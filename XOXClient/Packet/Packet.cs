@@ -97,5 +97,11 @@ namespace XOXClient
                 _buffer = ms.ToArray();
             }
         }
+
+        // boolean check whether the buffer position is at end.
+        public bool ReadEnded()
+        {
+            return (_readPos >= (_buffer.Length - 1));
+        }
     }
 }
