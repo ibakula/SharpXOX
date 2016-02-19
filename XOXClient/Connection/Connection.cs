@@ -53,11 +53,16 @@ namespace XOXClient
             {
                 int index = 0;
                 byte field = 0;
-                packet.Read(ref index);
-                packet.Read(ref field);
-                Game.UpdateFields(field, index);
-                Console.WriteLine(Game.DrawTable());
-                Console.WriteLine("You have lost the match.");
+                if (!packet.ReadEnded())
+                {
+                    packet.Read(ref index);
+                    packet.Read(ref field);
+                    Game.UpdateFields(field, index);
+                    Console.WriteLine(Game.DrawTable());
+                    Console.WriteLine("You have lost the match.");
+                }
+                else Console.WriteLine("Opponent quit.");
+
                 Game.Reset();
             }
             Console.WriteLine("You are now viewing the lobby.");
@@ -121,8 +126,8 @@ namespace XOXClient
             _socket.EndReceive(result);
             byte opcode = packet.GetOpcode();
 
-            if (OpcodesHandler.handlerTable[opcode].Handler != null)
-                OpcodesHandler.handlerTable[opcode].Handler(packet);
+            if (OpcodesHandler.Handler[opcode] != null)
+                OpcodesHandler.Handler[opcode](packet);
 
             packet = new Packet();
             _socket.BeginReceive(packet.GetData, 0, 53, SocketFlags.None, new AsyncCallback(HandleReceive), packet);

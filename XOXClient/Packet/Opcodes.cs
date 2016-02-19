@@ -19,22 +19,13 @@ namespace XOXClient
 
     public struct OpcodesHandler
     {
-        public OpcodesHandler(Opcodes opcode, FnHandler handler)
-        {
-            Name = opcode.ToString();
-            Handler = handler;
-        }
-
-        public static OpcodesHandler[] handlerTable = 
+        public static Action<Packet>[] Handler = 
         { 
-            new OpcodesHandler(Opcodes.NULL, delegate(Packet pckt) { Connection.HandleNullOpcode(pckt); }),
-            new OpcodesHandler(Opcodes.JOIN, delegate(Packet pckt) { Connection.HandleJoinOpcode(pckt); }),
-            new OpcodesHandler(Opcodes.LOBBY, delegate(Packet pckt) { Connection.HandleLobbyOpcode(pckt); }),
-            new OpcodesHandler(Opcodes.START, delegate(Packet pckt) { Connection.HandleStartOpcode(pckt); }),
-            new OpcodesHandler(Opcodes.TURN, delegate(Packet pckt) { Connection.HandleTurnOpcode(pckt); })
+            (Packet pckt) => Connection.HandleNullOpcode(pckt), 
+            (Packet pckt) => Connection.HandleJoinOpcode(pckt), 
+            (Packet pckt) => Connection.HandleLobbyOpcode(pckt), 
+            (Packet pckt) => Connection.HandleStartOpcode(pckt), 
+            (Packet pckt) => Connection.HandleTurnOpcode(pckt) 
         };
-
-        public string Name;
-        public FnHandler Handler;
     }
 }

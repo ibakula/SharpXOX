@@ -12,6 +12,7 @@ namespace XOXServer
         private Connection(Socket client)
         {
             _client = null;
+            _name = String.Empty;
         }
 
         private Socket _client;
@@ -99,12 +100,14 @@ namespace XOXServer
 
         public void HandleTurnOpcode(Packet packet)
         {
-            if (_match == null)
+            if (_match == null) // Did the other player disconnect?
                 return;
 
             byte field = 0;
             packet.Read(ref field);
+
             _match.DoMovement(field, this);
+
             if (_match.FindWinner() == this)
             {
                 Packet packetToSend = new Packet(Opcodes.JOIN, false);
@@ -140,9 +143,16 @@ namespace XOXServer
         public void HandleReceive(IAsyncResult result)
         {
             Packet packet = (Packet)result.AsyncState;
+            SocketError err;
+            int recvBytes = _client.EndReceive(result, out err);
+            if (recvBytes < 53 || err != SocketError.Success)
+            {
+                EndGameOnDisconnect();
+                return;
+            }
             int packetSize = packet.GetPacketSize();
             packet.Prepare(packetSize);
-            _client.BeginReceive(packet.GetData, 53, packetSize, SocketFlags.None, new AsyncCallback(HandleReceiveMore), packet);
+            RecvWrapper(packet.GetData, 53, packetSize, SocketFlags.None, new AsyncCallback(HandleReceiveMore), packet);
         }
 
         public void HandleReceiveMore(IAsyncResult result)
@@ -150,11 +160,11 @@ namespace XOXServer
             Packet packet = (Packet)result.AsyncState;
             byte opcode = packet.GetOpcode();
 
-            if (OpcodesHandler.handlerTable[opcode].Handler != null)
-                OpcodesHandler.handlerTable[opcode].Handler(this, packet);
+            if (OpcodesHandler.Handler[opcode] != null)
+                OpcodesHandler.Handler[opcode](this, packet);
 
             packet = new Packet();
-            _client.BeginReceive(packet.GetData, 0, 53, SocketFlags.None, new AsyncCallback(HandleReceive), packet);
+            RecvWrapper(packet.GetData, 0, 53, SocketFlags.None, new AsyncCallback(HandleReceive), packet);
         }
 
         public static void Open(IAsyncResult result)
@@ -166,17 +176,53 @@ namespace XOXServer
             connection._client = handler;
             Lobby.AddPlayer(connection);
             Packet packet = new Packet();
-            handler.BeginReceive(packet.GetData, 0, 53, SocketFlags.None, new AsyncCallback(connection.HandleReceive), packet);
+            connection.RecvWrapper(packet.GetData, 0, 53, SocketFlags.None, new AsyncCallback(connection.HandleReceive), packet);
+        }
+
+        private void RecvWrapper(byte[] buffer, int offset, int size, SocketFlags flags, AsyncCallback callback, object state)
+        {
+            SocketError err = SocketError.Success;
+            try
+            {
+                _client.BeginReceive(buffer, offset, size, flags, out err, callback, state);
+            }
+            catch (Exception /*e*/)
+            {
+                if (err == SocketError.Success)
+                    err = SocketError.SocketError;
+            }
+            finally
+            {
+                if (err != SocketError.Success)
+                {
+                    Console.Error.WriteLine("Client \"{0}\" Recv Code Error: SocketError Num {1}", _name, err.ToString());
+                    EndGameOnDisconnect();
+                }
+            }
+
         }
 
         private void SendNext()
         {
-            SocketError err;
-            _client.Send(_packets.Peek().GetData, 0, _packets.Peek().GetPacketSize()+53, SocketFlags.None, out err);
+            SocketError err = SocketError.Success;
+            try
+            {
+                _client.Send(_packets.Peek().GetData, 0, _packets.Peek().GetPacketSize() + 53, SocketFlags.None, out err);
+            }
+            catch (Exception /*e*/)
+            {
+                if (err == SocketError.Success)
+                    err = SocketError.SocketError;
+            }
+            finally
+            {
+                if (err != SocketError.Success)
+                {
+                    Console.Error.WriteLine("Client \"{0}\" Send Code Error: SocketError Num {1}", _name, err.ToString());
+                    EndGameOnDisconnect();
+                }
+            }
 
-            if (err != SocketError.Success)
-                Console.WriteLine("Client \"{0}\" Send Code Error: SocketError Num {1}", _name, err.ToString());
-            
             _packets.Dequeue();
 
             if (_packets.Count != 0)
@@ -189,6 +235,33 @@ namespace XOXServer
             _packets.Enqueue(packet);
             if (_packets.Count == 1)
                 SendNext();
+        }
+
+        private void EndGameOnDisconnect()
+        {
+            if (_match != null)
+            {
+                Connection opponent = _match.GetOponnent(this);
+                Packet packetToSend = new Packet(Opcodes.JOIN, false);
+                packetToSend.Write(opponent.GetName);
+                packetToSend.Settle();
+                // Just moving read position
+                packetToSend.GetPacketSize();
+                packetToSend.GetOpcode();
+                opponent._match = null; // End game, player disconnected.
+                _match = null;
+                opponent.HandleJoinOpcode(packetToSend);
+            }
+            else Lobby.RemovePlayer(this);
+            Console.Error.WriteLine("Shutting down connection with {0}.", _name);
+            try
+            {
+                _client.Shutdown(SocketShutdown.Both);
+            }
+            finally
+            {
+                _client.Close();
+            }
         }
     }
 }
